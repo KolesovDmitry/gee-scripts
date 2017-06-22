@@ -1,0 +1,26 @@
+Installation (Ubuntu version)
+=============================
+
+1. Install system deps:
+	sudo apt-get install libffi-dev
+2. Install virtual env (optional)
+sudo apt install virtualenv
+virtualenv --no-site-packages  venv
+source venv/bin/activate
+
+3. Install python deps:
+	pip install six	
+4. Install google api client:
+	pip install google-api-python-client
+
+5. Download latest version:
+    # Check version number, update URL 
+	wget https://pypi.python.org/packages/0b/e7/9e8d23bb03cce45dbf3c9a73a9e6ebe1e7ed5d4699c2f07f04c7d4c6304a/earthengine-api-0.1.114.tar.gz#md5=c28d58f3f765bd1ea0dc730e7f543042 
+
+6. Unpack:
+	tar -zxvf earthengine-api-0.1.114.tar.gz 
+
+7. Install:
+	cd earthengine-api-0.1.114
+	python setup.py install
+
