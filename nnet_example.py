@@ -51,7 +51,7 @@ def main(geom_mask):
     n3 = Neuron([1, 1], 1)
     lr2 = Layer([n3])
 
-    nn = NNet(lr1, lr2)
+    nn = NNet([lr1, lr2])
 
     out = nn.outs(data)
     print(out.getInfo())

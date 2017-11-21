@@ -46,13 +46,21 @@ class Layer:
 
 
 class NNet:
-    def __init__(self, middle_layer, out_layer):
-        self.middle_layer = middle_layer
-        self.out_layer = out_layer
+    def __init__(self, layers):
+        """Create NNet
+        
+        :param layers: list of layers 
+                       layers[0] is first hidden layer, 
+                       layers[-1] is the output layer
+        """
+        self.layers = layers
 
     def outs(self, inputs):
-        middle = self.middle_layer.outs(inputs)
-        return self.out_layer.outs(middle)
+        layer_out = inputs
+        for lr in self.layers:
+            layer_out = lr.outs(layer_out)
+
+        return layer_out
 
 
 
