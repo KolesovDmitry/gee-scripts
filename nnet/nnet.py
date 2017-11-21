@@ -4,11 +4,20 @@ import ee
 # Neural Network DEFINITION
 class Neuron:
     def __init__(self, weights, bias):
+        """
+        :param weights: List of neuron's weights 
+        :param bias: Bias
+        """
         self.weights = weights
         self.bias = bias
 
     # TODO: check shape of inputs and weights
     def out(self, inputs):
+        """Return neuron output
+        
+        :param inputs: List of EE images
+        :return: EE image 
+        """
         # self.check()
 
         w0 = ee.Image(self.weights)
