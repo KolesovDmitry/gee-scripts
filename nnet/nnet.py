@@ -8,8 +8,8 @@ class Neuron:
         :param weights: List of neuron's weights 
         :param bias: Bias
         """
-        self.weights = weights
-        self.bias = bias
+        self.weights = ee.Image(weights)
+        self.bias = ee.Image(bias)
 
     # TODO: check shape of inputs and weights
     def out(self, inputs):
@@ -20,10 +20,9 @@ class Neuron:
         """
         # self.check()
 
-        w0 = ee.Image(self.weights)
-        potential = inputs.multiply(w0)
+        potential = inputs.multiply(self.weights)
         potential = potential.reduce(ee.Reducer.sum())
-        potential = potential.add(ee.Image(self.bias))
+        potential = potential.add(self.bias)
         # TODO: create sigmoid function
         output = potential.expression(
             '1.0 / (1 + exp(-potential))',
@@ -38,7 +37,14 @@ class Layer:
         self.neurons = neuron_list
 
     def outs(self, inputs):
+        """Return output of layer as ee.Image. 
+        The first band of the image is the output of the first neuron, the second band corresponds the second neuron etc.
+        
+        :param inputs: ee.Image with input data
+        :return: ee.Image of layer's output
+        """
         outs = []
+        # The order of the outs is EXTREMELY important
         for n in self.neurons:
             outs.append(n.out(inputs))
 

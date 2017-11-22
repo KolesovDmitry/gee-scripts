@@ -33,8 +33,6 @@ def create_median(geom_mask, begin, end):
 
 
 def main(geom_mask):
-    mod5_alarms15ig = ee.FeatureCollection(
-        'ft:1nSY5gPlvffkZH5-rS02hY5mNw07WwFT7JJ5dYnXn')
 
     winter1415 = create_median(geom_mask, '2014-11-25', '2015-03-08')
     winter1516 = create_median(geom_mask, '2015-11-25', '2016-03-08')

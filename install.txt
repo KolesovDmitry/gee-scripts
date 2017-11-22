@@ -24,3 +24,8 @@ source venv/bin/activate
 	cd earthengine-api-0.1.114
 	python setup.py install
 
+(?) 8. Authenticating to the Earth Engine servers: see https://github.com/google/earthengine-api/blob/master/python/examples/ipynb/authorize_notebook_server.ipynb
+
+
+9. Run tests for NNet:
+    python -m unittest tests.nnet_test
