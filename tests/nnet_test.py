@@ -53,7 +53,6 @@ class TestLayer(unittest.TestCase):
         # 3 outputs because of setUp
         self.assertEqual(len(band_list), 3)
 
-
         output = out.reduceRegion(ee.Reducer.min(), GEOM_MASK, scale=30)
         result = output.getInfo()
 
@@ -65,6 +64,38 @@ class TestLayer(unittest.TestCase):
         self.assertGreater(out3, out2)
         self.assertGreater(out2, out1)
 
+
+class TestNNet(unittest.TestCase):
+    def setUp(self):
+        neuron1 = Neuron([0.1, 0.2], 0)
+        neuron2 = Neuron([0.2, 0.4], 0)
+        neuron3 = Neuron([0.3, 0.6], 0)
+
+
+        neuron4 = Neuron([0.3, 0.6, 0.0], 0)
+        neuron5 = Neuron([0.3, 0.6, 0.0, -0.2], 0)
+
+        layer1 = Layer([neuron1, neuron2, neuron3])
+        layer2 = Layer([neuron4, neuron4, neuron4, neuron4])
+        layer3 = Layer([neuron5])
+
+        self.nnet = NNet([layer1, layer2, layer3])
+
+    def test_outs(self):
+        inputs = ee.Image([0.3, 0.1])
+
+        out = self.nnet.outs(inputs)
+        band_list = out.bandNames().getInfo()
+        # 1 outputs because of setUp
+        self.assertEqual(len(band_list), 1)
+
+        output = out.reduceRegion(ee.Reducer.minMax(), GEOM_MASK, scale=30)
+        result = output.getInfo()
+
+        result_min = result['constant_min']
+        result_max = result['constant_max']
+
+        self.assertAlmostEqual(result_min, result_max)
 
 if __name__ == '__main__':
     unittest.main()
