@@ -71,7 +71,6 @@ class TestNNet(unittest.TestCase):
         neuron2 = Neuron([0.2, 0.4], 0)
         neuron3 = Neuron([0.3, 0.6], 0)
 
-
         neuron4 = Neuron([0.3, 0.6, 0.0], 0)
         neuron5 = Neuron([0.3, 0.6, 0.0, -0.2], 0)
 

@@ -4,9 +4,10 @@
 
 IMAGE_ID = 'LANDSAT/LC8_L1T_TOA_FMASK'
 
-from math import exp
 import ee
 
+import pickle
+import numpy as np
 
 def cloud_mask(img):
     cloudMask = img.select('fmask').lt(4)
@@ -19,7 +20,7 @@ def select_bands(img):
 
 def create_median(geom_mask, begin, end):
     filterParams = ee.ImageCollection(IMAGE_ID).\
-        filterBounds(destination).\
+        filterBounds(geom_mask).\
         filter(ee.Filter.date(begin, end)).\
         map(cloud_mask).map(select_bands)
 
@@ -27,36 +28,6 @@ def create_median(geom_mask, begin, end):
     clipped_median = median.clip(geom_mask)
 
     return clipped_median
-
-
-def neuron(inputs, w, bias):
-    w = ee.Image(w)
-    potential = inputs.multiply(w)
-    potential = potential.reduce(ee.Reducer.sum())
-    potential = potential.add(ee.Image(bias))
-
-    output = potential.expression(
-        '1.0 / (1 + exp(-potential))', {'potential': potential.select('sum')})
-
-    return output
-
-
-def nnet(input_1, input_2, input_3, input_4, input_5, input_6):
-    hidden_pot_1 = -3.44450377987436 + input_1 * (74.3718551556474) + input_2 * (-21.2367519758289) + input_3 * (
-        -55.7135867952326) + input_4 * (13.8055979723598) + input_5 * (33.8263553699906) + input_6 * (-4.65603663256619)
-    hidden_1 = 1 / (1 + exp(-hidden_pot_1))
-    hidden_pot_2 = 1.74165858322656 + input_1 * (-12.9459938873083) + input_2 * (34.9694205850822) + input_3 * (
-        -5.16519568791497) + input_4 * (-21.7194850261224) + input_5 * (-17.3280785945837) + input_6 * (71.0147521320201)
-    hidden_2 = 1 / (1 + exp(-hidden_pot_2))
-    hidden_pot_3 = -0.933320762369686 + input_1 * (-25.6815062078177) + input_2 * (19.0405107028956) + input_3 * (
-        30.5258581643624) + input_4 * (-45.6688597695154) + input_5 * (3.50747732974286) + input_6 * (58.4352978956202)
-    hidden_3 = 1 / (1 + exp(-hidden_pot_3))
-    out_pot1 = 21.4929274624373 + hidden_1 * \
-        (45.9907843593617) + hidden_2 * \
-        (-29.351969547187) + hidden_3 * (44.488091219665)
-    out_neuron_1 = 1 / (1 + exp(-out_pot1))
-
-    return out_neuron_1
 
 
 def main(geom_mask):
@@ -74,9 +45,55 @@ def main(geom_mask):
     # merge together 14 15 var
     data = ee.Image.cat([winter1415, winter1516])
 
-    out = neuron(data, range(6), 1)
-    print(out.getInfo())
+    print(data)
 
+    # get sample
+    sample = data.sampleRegions(train_cut, ['Class'], 30);
+    print('First 10 feature: ', sample.limit(10));
+
+    seed=2015;
+    # ee.Classifier.randomForest(numberOfTrees, variablesPerSplit, minLeafPopulation, bagFraction, outOfBagMode, seed)
+    classifier = ee.Classifier.randomForest(500, 3, 100, 0.5, False, seed);
+
+    # Retrain the classifiers using the full dataset.
+    RF15 = classifier.train(sample, 'Class');
+
+    # print(RF15.getInfo());
+    # Classify the images.
+    classified2015 =  data.classify(RF15);
+    classified2015b = classified2015.toByte();
+    print('classified2015', classified2015b.getInfo());
+
+    # Export
+
+    # TODO: Try to export as numpy array:
+    '''
+    latlon = classified2015b.reduceRegion(
+        reducer=ee.Reducer.toList(),
+        geometry=geom_mask,
+        scale=30)
+
+
+    data = np.array((ee.Array(latlon.get("nd")).getInfo()))
+    lats = np.array((ee.Array(latlon.get("latitude")).getInfo()))
+    lons = np.array((ee.Array(latlon.get("longitude")).getInfo()))
+
+    output = open('data.pkl', 'wb')
+
+    pickle.dump((data, lats, lons), output)
+    output.close()
+    '''
+
+    # task_config = {
+        # 'description': 'imageToDriveExample',
+        # 'scale': 30,
+        # 'region': geom_mask
+    # }
+    # Export.image.toDrive(image, description, folder, fileNamePrefix, dimensions, region, scale, crs, crsTransform,
+                         # maxPixels, shardSize, fileDimensions, skipEmptyTiles)
+    task = ee.batch.Export.image.toDrive(classified2015b, 'exportExample')
+    print('Start task')
+    task.start()
 
 if __name__ == '__main__':
     ee.Initialize()
