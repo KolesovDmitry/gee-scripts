@@ -62,7 +62,7 @@ def main(geom_mask):
     # Classify the images.
     classified2015 =  data.classify(RF15);
     classified2015b = classified2015.toByte();
-    print('classified2015', classified2015b.getInfo());
+    # print('classified2015', classified2015b.getInfo());
 
     # Export
 
