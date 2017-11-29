@@ -44,39 +44,65 @@ class Aggregator:
             raise NotImplementedError('Aggregate function %s is not implemented yet' % (self.function_name))
 
         self.collection_name = collection_name
+        if not (self._l7 or self._l8):
+            raise NotImplementedError('Aggregation for ImageCollection %s is not implemented yet' % (self.collection_name))
         self.collection = ee.ImageCollection(self.collection_name)
 
 
     @property
     def _l7(self):
         """Return True if the collection is LANDSAT-7"""
-        return self.collection_name[:12] == 'LANDSAT/LC07'
+        return self.collection_name[:12] == 'LANDSAT/LE07'
 
     @property
     def _l8(self):
         """Return True if the collection is LANDSAT-8"""
         return self.collection_name[:12] == 'LANDSAT/LC08'
 
-    def aggregator(self, collection):
+    def _aggregator(self, collection):
         if self.function_name == 'median':
             return collection.median()
 
+    def filter_cloud(self, collection, cloud_perc=50):
+        """Filter clouds using metadata and BQA|Algoritms.Landsat"""
+        collection.filterMetadata('CLOUD_COVER','less_than', cloud_perc)
 
-    def createMedians(self, geom_mask, year,beginDay, endDay, period):
+        if self._l7:
+            collection = collection.map(filterCloudL7)
+        elif self._l8:
+            collection = collection.map(filterCloudL8)
+        else:
+            raise NotImplementedError('This type of ImageCollection is not implemented')
+
+        return collection
+
+    def select_bands(self, collection):
+        """Filter clouds using metadata and BQA|Algoritms.Landsat"""
+        if self._l7:
+            collection = collection.map(selectBandsL7)
+        elif self._l8:
+            collection = collection.map(selectBandsL8)
+        else:
+            raise NotImplementedError('This type of ImageCollection is not implemented')
+
+        return collection
+
+    def aggregate(self, geom_mask, year,beginDay, endDay, period):
+        """Apply aggregation function, return ee.ImageCollection"""
+
         imgList = []
         begin = beginDay
         while (begin < endDay):
             filters = combine_filter(geom_mask, year, beginDay, beginDay+period)
 
-            filterParams = self.collection.filter(filters)
-            filterParams.filterMetadata('CLOUD_COVER','less_than', 50).map(filterCloudL7).map(selectBandsL7)
+            filtered_collection = self.collection.filter(filters)
+            filtered_collection = self.filter_cloud(filtered_collection)
+            filtered_collection = self.select_bands(filtered_collection)
 
-            collection = ee.ImageCollection(filterParams)
-
-            median = self.aggregator(collection)
-            comp16d = median.set('id', 'L78_16d_'+ str(year)+'_'+str(begin + period))
-            clippedMedian = comp16d.clip(geom_mask)
-            imgList.append(clippedMedian)
+            agg_collection = self._aggregator(filtered_collection)
+            comp = agg_collection.set('id', "L_%s_%s_%s" % (year, begin, period))
+            clipped = comp.clip(geom_mask)
+            imgList.append(clipped)
             begin += period
 
         return ee.ImageCollection(imgList)
@@ -89,13 +115,17 @@ if __name__ == '__main__':
     ee.Initialize()
 
     destination = ee.Geometry.Polygon(
-        [[136.1212921142578, 46.1646144968971],
-         [136.11785888671875, 45.9874205909687],
-         [136.60606384277344, 45.98503507715983],
-         [136.60400390625, 46.17222297845542],
-         [136.1199188232422, 46.17317396465173]])
+        [[49.03250,55.79693],
+         [49.118039,55.835827],
+         [49.216189,55.804547],
+         [49.169160,55.767073]])
 
     aggregator = Aggregator('LANDSAT/LE07/C01/T1_RT_TOA')
-    tmp = aggregator.createMedians(destination, 2017, 100, 160, 10)
+    tmp = aggregator.aggregate(destination, 2017, 100, 260, 10)
+
+    # task = ee.batch.Export.image.toDrive(tmp, 'LandsatComposite')
+    # print('Start task')
+    # task.start()
+
     tmp = tmp.getInfo()
     print tmp
