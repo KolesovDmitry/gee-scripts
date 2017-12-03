@@ -29,3 +29,11 @@ source venv/bin/activate
 
 9. Run tests for NNet:
     python -m unittest tests.nnet_test
+
+
+OPTIONAL
+
+Some usefull packages used for exploration
+
+pip install seaborn
+pip install ipython
