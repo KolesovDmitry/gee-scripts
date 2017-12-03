@@ -22,13 +22,13 @@ def filterCloudL7(img):
     return img.updateMask(score)
 
 
+#TODO: allow to seclect bands in runtime
 def selectBandsL8(img):
-  # select only 3 bands
-  return img.expression('b("B7","B6","B5","B4","B3","B2")').rename('swir2','swir1','nir','red','green','blue')
+  return img.expression('b("B5","B4","B3","B2")').rename('nir','red','green','blue')
 
+#TODO: allow to seclect bands in runtime
 def selectBandsL7(img):
-  # select only 3 bands
-  return img.expression('b("B7","B5","B4","B3","B2","B1")').rename('swir2','swir1','nir','red','green','blue')
+  return img.expression('b("B4","B3","B2","B1")').rename('nir','red','green','blue')
 
 
 def data_filter(year, begin_day, end_day):
