@@ -21,27 +21,19 @@ def filterCloudL7(img):
     score = cloud.select(['cloud']).lte(30)
     return img.updateMask(score)
 
-
 #TODO: allow to seclect bands in runtime
 def selectBandsL8(img):
-  return img.expression('b("B5","B4","B3","B2")').rename('nir','red','green','blue')
+  return img.expression('b("B6","B5","B4","B3","B2")').rename('swir1','nir','red','green','blue')
 
 #TODO: allow to seclect bands in runtime
 def selectBandsL7(img):
-  return img.expression('b("B4","B3","B2","B1")').rename('nir','red','green','blue')
-
-
-def data_filter(year, begin_day, end_day):
-    flt = ee.Filter([
-        ee.Filter.calendarRange(year, year, 'year'),
-        ee.Filter.dayOfYear(begin_day, end_day)
-    ])
-    return flt
+  return img.expression('b("B5","B4","B3","B2","B1")').rename('swir1','nir','red','green','blue')
 
 
 def combine_filter(geom, year, begin_day, end_day):
     f = ee.Filter([
-        data_filter(year, begin_day, end_day),
+        ee.Filter.calendarRange(year, year, 'year'),
+        ee.Filter.dayOfYear(begin_day, end_day),
         ee.Filter.geometry(geom)
     ])
     return f
@@ -50,7 +42,7 @@ def combine_filter(geom, year, begin_day, end_day):
 class Aggregator:
     def __init__(self, collection_list, function='median'):
         self.function_name = function
-        if self.function_name != 'median':
+        if self.function_name not in ['median', 'count', 'min', 'max', 'mode', 'mean', 'product', 'sum']:
             raise NotImplementedError('Aggregate function %s is not implemented yet' % (self.function_name))
 
         self.collection_list = collection_list
@@ -62,6 +54,26 @@ class Aggregator:
     def _aggregator(self, collection):
         if self.function_name == 'median':
             return collection.median()
+        if self.function_name == 'count':
+            return collection.count()
+
+        if self.function_name == 'max':
+            return collection.max()
+        if self.function_name == 'min':
+            return collection.min()
+
+        if self.function_name == 'mode':
+            return collection.mode()
+        if self.function_name == 'mean':
+            return collection.mean()
+
+        if self.function_name == 'product':
+            return collection.product()
+        if self.function_name == 'sum':
+            return collection.sum()
+
+
+
 
     def filter_cloud(self, collection_id, collection, cloud_perc=50):
         """Filter clouds using metadata and BQA|Algoritms.Landsat"""
@@ -88,13 +100,13 @@ class Aggregator:
 
     def aggregate(self, geom_mask, year,beginDay, endDay, period):
         """Apply aggregation function, return ee.ImageCollection"""
-
         imgList = []
         begin = beginDay
         while (begin < endDay):
             filters = combine_filter(geom_mask, year, beginDay, beginDay+period)
 
             # Merge all coolections into one
+            merged_collection = None
             for i, collection_id in enumerate(self.collection_list):
                 filtered_collection = ee.ImageCollection(collection_id).filter(filters)
                 filtered_collection = self.filter_cloud(collection_id, filtered_collection)
@@ -108,8 +120,7 @@ class Aggregator:
             collection = ee.ImageCollection(merged_collection)
 
             agg_collection = self._aggregator(collection)
-            comp = agg_collection.set('id', "L_%s_%s_%s" % (year, begin, period))
-            clipped = comp.clip(geom_mask)
+            clipped = agg_collection.clip(geom_mask).set('id', "L_%s_%s_%s" % (year, begin, period))
             imgList.append(clipped)
             begin += period
 
@@ -135,10 +146,10 @@ if __name__ == '__main__':
     # print('Start task')
     # task.start()
 
-    task = ee.batch.Export.image.toAsset(image=tmp.first(), assetId='users/kolesovdm/test', scale=30)
-    print('Start task')
-    task.start()
+    # task = ee.batch.Export.image.toAsset(image=tmp.first(), assetId='users/kolesovdm/test', scale=30)
+    # print('Start task')
+    # task.start()
 
-    # tmp = tmp.getInfo()
+    tmp = tmp.getInfo()
     # import ipdb;ipdb.set_trace()
-    # print tmp
+    print tmp
