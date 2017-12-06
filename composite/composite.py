@@ -103,7 +103,7 @@ class Aggregator:
         imgList = []
         begin = beginDay
         while (begin < endDay):
-            filters = combine_filter(geom_mask, year, beginDay, beginDay+period)
+            filters = combine_filter(geom_mask, year, begin, begin+period)
 
             # Merge all coolections into one
             merged_collection = None
